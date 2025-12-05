@@ -1,0 +1,146 @@
+{% extends "glucose_app/base.html" %}
+{% block content %}
+
+{% if alert %}
+<div class="alert alert-danger">
+    {{ alert.risk }}! Predicted glucose: {{ alert.prediction|floatformat:1 }} mmol
+</div>
+{% endif %}
+
+<h2>Glucose Dashboard</h2>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card p-3 mb-3">
+            <h5>Current Prediction</h5>
+            <div id="prediction-box" class="glucose-item">
+                Loading...
+            </div>
+        </div>
+        <div class="card p-3">
+            <h5>Latest Measurements</h5>
+            {% for item in day %}
+            <div class="glucose-item">
+                {{ item.glucose }} {{ item.unit }} - {{ item.timestamp }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card p-3 mb-3">
+            <h5>Daily Curve</h5>
+            <canvas id="dayChart"></canvas>
+        </div>
+        <div class="card p-3 mb-3">
+            <h5>Weekly Curve</h5>
+            <canvas id="weekChart"></canvas>
+        </div>
+        <div class="card p-3 mb-3">
+            <h5>Monthly Curve</h5>
+            <canvas id="monthChart"></canvas>
+        </div>
+        <div class="card p-3 mb-3">
+            <h5>3-Month Curve</h5>
+            <canvas id="threeMonthChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="card p-3 mb-3">
+    <h5>Convert Units</h5>
+    <select id="unit-select" class="form-control w-25">
+        <option value="mmol">mmol/L</option>
+        <option value="mg">mg/dL</option>
+    </select>
+</div>
+<div class="card p-3 mb-3">
+    <h5>Add Manual Glucose Measurement</h5>
+    <form method="POST" action="{% url 'add_manual' %}">
+        {% csrf_token %}
+        <input name="glucose" type="number" step="0.1" class="form-control w-25 mb-2" placeholder="Glucose" required>
+        <select name="unit" class="form-control w-25 mb-2">
+            <option value="mmol">mmol/L</option>
+            <option value="mg">mg/L</option>
+        </select>
+        <button type="submit" class="btn btn-primary w-25">Add</button>
+    </form>
+</div>
+<div class="card p-3 mb-3">
+    <h5>Add Food Intake</h5>
+    <form method="POST" action="{% url 'add_food' %}">
+        {% csrf_token %}
+        <input id="food-name" class="form-control w-50 mb-2" placeholder="Meal name">
+        <input id="food-calories" class="form-control w-25 mb-2" placeholder="Calories (optional)">
+        <textarea id="food-description" class="form-control w-50 mb-2" placeholder="Description (optional)"></textarea>
+        <button type="submit" class="btn btn-success w-25">Add Meal</button>
+    </form>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+function buildChart(id, dataset){
+    return new Chart(document.getElementById(id), {
+        type: "line",
+        data: {
+            labels: dataset.map(x => x.timestamp),
+            datasets: [{
+                data: dataset.map(x => x.glucose),
+                borderWidth: 3
+            }]
+        }
+    });
+}
+
+fetch("/predict/")
+    .then(r => r.json())
+    .then(data => {
+        let box = document.getElementById("prediction-box");
+
+        if (data.risk === "Hypoglycemia risk"){
+            box.classList.add("risk-low");
+        }
+        if (data.risk === "Hyperglycemia risk") {
+            box.classList.add("risk-high");
+        }
+
+        box.innerHTML = `<b>${data.prediction.toFixed(1)}></b> mmol - ${data.risk}`;
+    });
+</script>
+
+{{ block.super }}
+<script>
+function mmolToMg(v) { return v * 18.0; }
+function mgToMmol(v) { return v / 18.0; }
+
+let savedUnit = localStorage.getItem("unit");
+let currentUnit = savedUnit ? savedUnit : "mmol";
+
+document.getElementById("unit-select").value = currentUnit;
+
+let dayChart = buildChart("dayChart", {{ day|safe }});
+let weekChart = buildChart("weekChart", {{ week|safe }});
+let monthChart = buildChart("monthChart", {{ month|safe }});
+let threeMonthChart = buildChart("threeMonthChart", {{ three_month|safe }});
+
+document.getElementById("unit-select").addEventListener("change", function() {
+    let newUnit = this.value;
+    if (newUnit === currentUnit) return;
+
+    convertGraph(dayChart);
+    convertGraph(weekChart);
+    convertGraph(monthChart);
+    convertGraph(threeMonthChart);
+
+    currentUnit = newUnit;
+    localStorage.setItem("unit", newUnit);
+});
+
+function convertGraph(chart){
+    chart.data.datasets[0].data = chart.data.datasets[0].data.map(v => {
+        return currentUnit === "mmol" ? mmolToMg(v) : mgToMmol(v);
+    });
+    chart.update();
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{title}}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"/>
+    <style>
+        body{
+            background: #f7f9fc;
+        }
+        .navbar{
+            background: #0d6efd;
+        }
+        .navbar-brand, .nav-link, .navbar-text{
+            color: white !important;
+        }
+        .card{
+            border-radius: 16px;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.05);
+        }
+        .glucose-item{
+            padding: 8px, 12px;
+            background: #eef4ff;
+            border-radius: 8px;
+            margin-bottom: 5px;
+        }
+        .risk-high{
+            background: #ffd5d5 !important;
+            color: #a10000;
+        }
+        .risk-low{
+            background: #fff3cd !important;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/dashboard/">Diabetes Monitor</a>
+        <div class="d-flex ms-auto align-items-center">
+            <a href="/profile/" class="btn btn-outline-light me-2">Profile</a>
+            <a href="/" class="btn btn-light me-3">Home</a>
+        {% if user.is_authenticated %}
+        <span class="navbar-text">
+            {{user.username}}
+        </span>
+        <a class="nav-link" href="/logout/">Logout</a>
+        {% endif %}
+        </div>
+    </div>
+</nav>
+<div class="container mt-4">
+    {% block content %}
+    {% endblock %}
+</div>
+</body>
+</html>
