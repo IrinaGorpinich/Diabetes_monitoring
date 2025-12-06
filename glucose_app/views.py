@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from rest_framework.authtoken.models import Token
 
 from django.http import JsonResponse
@@ -13,6 +13,7 @@ from django.contrib.auth import authenticate, login, logout
 
 from django.utils import timezone
 from django.contrib import messages
+
 
 @csrf_exempt
 def receive_iot_data(request):
@@ -47,6 +48,7 @@ def receive_iot_data(request):
 def dashboard(request):
     user = request.user
     records = GlucoseRecord.objects.filter(users=user).order_by("timestamp")
+    meals = FoodIntake.objects.filter(user=user).order_by("-timestamp")
     if not records.exists():
         return render(request, "glucose_app/dashboard.html", {
             "day": [],
@@ -65,7 +67,7 @@ def dashboard(request):
 
     for d in [day_df, week_df, month_df, three_month_df]:
         if not d.empty:
-            d["timestamp"] = d["timestamp"].dt.strftime("%Y-%m-%dT%H:%M:$S")
+            d["timestamp"] = d["timestamp"].dt.strftime("%Y-%m-%dT%H:%M:%S")
 
     alert = alert_check(request.user)
 
@@ -75,6 +77,7 @@ def dashboard(request):
         "month": month_df.to_dict("records"),
         "three_month": three_month_df.to_dict("records"),
         "alert": alert,
+        "meals": meals,
     })
 
 def predict_glucose(request):
@@ -186,4 +189,16 @@ def add_manual_glucose(request):
         messages.success(request, "Glucose measurement added!")
 
         return redirect("/dashboard/")
+    return redirect("/dashboard/")
+
+def delete_food(request, meal_id):
+    meal = get_object_or_404(FoodIntake, id=meal_id, user=request.user)
+    meal.delete()
+    messages.success(request, "Meal deleted!")
+    return redirect("/dashboard/")
+
+def delete_glucose(request, record_id):
+    record = get_object_or_404(GlucoseRecord, id=record_id, users=request.user)
+    record.delete()
+    messages.success(request, "Glucose record deleted!")
     return redirect("/dashboard/")

@@ -22,6 +22,10 @@
             {% for item in day %}
             <div class="glucose-item">
                 {{ item.glucose }} {{ item.unit }} - {{ item.timestamp }}
+                <form method="POST" action="{% url 'delete_glucose' item.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
             </div>
             {% endfor %}
         </div>
@@ -69,11 +73,28 @@
     <h5>Add Food Intake</h5>
     <form method="POST" action="{% url 'add_food' %}">
         {% csrf_token %}
-        <input id="food-name" class="form-control w-50 mb-2" placeholder="Meal name">
-        <input id="food-calories" class="form-control w-25 mb-2" placeholder="Calories (optional)">
-        <textarea id="food-description" class="form-control w-50 mb-2" placeholder="Description (optional)"></textarea>
+        <input name="name" id="food-name" class="form-control w-50 mb-2" placeholder="Meal name">
+        <input name="calories" id="food-calories" class="form-control w-25 mb-2" placeholder="Calories (optional)">
+        <textarea name="description" id="food-description" class="form-control w-50 mb-2" placeholder="Description (optional)"></textarea>
         <button type="submit" class="btn btn-success w-25">Add Meal</button>
     </form>
+</div>
+<div class="card p-3 mb-3">
+    <h5>Recent Meals</h5>
+    {% for meal in meals %}
+    <div class="meal-item d-flex justify-content-between align-items-center mb-1">
+        <div>
+            <strong>{{ meal.name }}</strong> - {{ meal.calories }} kcal
+            {% if meal.description %}({{ meal.description }}){% endif %}
+        </div>
+        <form method="POST" action="{% url 'delete_food' meal.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+    </div>
+    {% empty %}
+    <p>No meals recorded.</p>
+    {% endfor %}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
