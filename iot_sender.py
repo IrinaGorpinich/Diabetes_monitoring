@@ -1,12 +1,13 @@
-import requests
+import json
 import time
 import random
+import paho.mqtt.client as mqtt
 
-URL = "http://192.168.X.X:8000/api/iot-data/"
-TOKEN = "ed928b71b1974cddb36795a4cebdbb416af7eeee"
-HEADERS = {
-    "Authorization": f"Token {TOKEN}"
-}
+BROKER = "localhost"
+TOPIC = "glucose/data"
+
+client = mqtt.Client()
+client.connect(BROKER, 1883)
 
 while True:
     glucose_value = round(random.uniform(3.0, 35.0), 1)
@@ -17,7 +18,7 @@ while True:
         "unit": "mmol",
     }
 
-    r = requests.post(URL, json=data, headers=HEADERS)
-    print("Sent:", data, "Response:", r.status_code)
+    client.publish(TOPIC, json.dumps(data))
+    print("MQTT sent:", data)
 
     time.sleep(5)
